@@ -1,0 +1,351 @@
+---
+title: "HW03"
+author: "Shashwat Mishra, EID: sdm4329"
+date: "2025-02-08"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(mosaic)
+gas_prices = read.csv("gasprices.csv")
+
+
+```
+***Claim 1:*** Gas stations charge more if they lack direct competition
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+competitor_labels <- c("Yes" = "With Competitors", "No" = "No Competitors")
+
+ggplot(gas_prices, aes(x = Price)) +
+  geom_histogram(fill = "navyblue", color = "grey6", bins = 20) +
+  facet_wrap(~ Competitors, labeller = label_value) +  
+  theme_minimal() +
+  labs(title = "Gas Price Distribution by Competitor Presence",
+       subtitle = "Comparing gas prices for stations with vs. without nearby competitors",
+       x = "Price ($ per gallon)", 
+       y = "Frequency")
+
+boot_comp = do(10000)*diffmean(Price ~ Competitors, data=mosaic::resample(gas_prices))
+
+```
+
+```{r, echo=FALSE}
+confint(boot_comp)
+```
+
+
+
+**Evidence:** When looking at the graph, it's shown that whether or not a gas station has competitors nearby, the distributions of the gas prices are relatively the same. The difference in price between gas stations with and without competition in sight is somewhere between -0.0555 and 0.0076, with 95% confidence.
+
+**Reasoning:** Because the difference in price includes 0, there's not conclusive evidence to show that competitors in the view of a certain gas station affect gas prices.
+
+\newpage
+
+***Claim 2:*** The richer the area, the higher the gas prices.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+median = median(gas_prices$Income, na.rm=TRUE)
+
+gas_prices$High_Income <- ifelse(gas_prices$Income > median, "Higher", "Lower")
+
+ggplot(gas_prices, aes(x = Price)) +
+  geom_histogram(fill = "orange", color = "grey6") +
+  facet_wrap(~ High_Income) +
+  theme_minimal() +
+  labs(title = "Gas Price Distribution by variation in Median Income",
+       subtitle = "Comparing gas prices for in areas that earn higher vs. lower than the median income (~52k)",
+       x = "Price ($ per gallon)", 
+       y = "Frequency")
+
+boot_inc <- do(10000) * diffmean(Price ~ High_Income, data = resample(gas_prices))
+```
+
+```{r, echo=FALSE, message=FALSE}
+confint(boot_inc)
+```
+
+**Evidence:** Although it's seen that there is some noticable difference in the gas prices in areas with higher median income, the difference in price between gas stations in lower and higher income areas is somewhere between -0.0116 and 0.0527, with 95% confidence.
+
+**Reasoning:** Because the range of the difference includes 0, the variance in median income does not show significant evidence that the median income of an area will increase or decrease gas prices.
+
+
+\newpage
+
+***Claim 3:*** Gas stations at stoplights charge more.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(gas_prices, aes(x = Stoplight, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Gas Prices by if at a Stoplight or Not", x = "Stoplight", y = "Price ($)") +
+  theme_minimal()
+
+
+
+boot_stop <- do(10000) * diffmean(Price ~ Stoplight, data = resample(gas_prices))
+confint(boot_stop)
+
+```
+**Evidence:** It's shown by the graph that the median of the gas prices when a stoplight is present is higher than when no stoplight is present. With the prices being $1.87 and $1.84, respectively. The difference in price between gas stations in near a stoplight and not near a stoplight is somewhere between -0.0382 and 0.0300, with 95% confidence.
+
+**Reasoning:** Similar to the other 2 claims, the confidence interval's range includes 0, which means a stoplight's presence is insignificant to the price of gas at the station.
+
+\newpage
+
+***Claim 4:*** Gas stations with direct highway access charge more
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(gas_prices, aes(x = Highway, y = Price)) +
+  geom_boxplot() +
+  labs(title = "Gas Prices by if Direct Access to Highway or Not", x = "Access to Highway", y = "Price ($)") +
+  theme_minimal()
+# Calculate both mean and median gas prices by stoplight presence
+gas_prices %>%
+  group_by(Highway) %>%
+  summarise(
+    Median_Price = median(Price, na.rm = TRUE)
+  )
+
+
+boot_high <- do(10000) * diffmean(Price ~ Highway, data = resample(gas_prices))
+# Confidence Interval
+confint(boot_high)
+```
+**Evidence:** The box plots show that there is a higher median price at stations that have direct highway access, being $1.89 - as opposed to no highway access, where the median price is $1.84. The confidence interval shows that there is slight variance in gas prices whether or not there is direct highway access - somewhere between 0.0087 and 0.0804, with 95% confidence.
+
+**Reasoning:** Because the confidence interval is above 1, and does not include 0 in it, we can say with 95% confidence that there is a variance of approximately $0.05 per gallon dependent on whether or not there is direct highway access or not.
+
+\newpage
+
+***Claim 5:*** Shell charges more than all other non-Shell brands.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+shell <- gas_prices %>%
+  mutate(Station_Type = ifelse(Brand == "Shell", "Shell", "Non-Shell"))
+
+ggplot(shell, aes(x = Station_Type, y = Price)) +
+  stat_summary(fun = "mean", geom = "bar", fill = c("forestgreen", "lightblue")) +
+  labs(
+    title = "Average Gas Price: Shell vs Non-Shell",
+    x = "Gas Station Type",
+    y = "Average Price ($)"
+  ) +
+  theme_minimal()
+
+boot_type <- do(10000) * diffmean(Price ~ Station_Type, data = resample(shell))
+confint(boot_type)
+```
+**Evidence:** It's shown that the prices of gas dependent on whether the station is a Shell or not are very similar. The difference in price is in the range of -0.009 to 0.064, with 95% confidence.
+
+**Reasoning:** Because the confidence interval range includes 0, we cannot say that Shell's ownership changes gas prices with certainty.
+
+\newpage
+
+## Question 2
+
+```{r, message=FALSE, echo=FALSE}
+sclass = read.csv("sclass.csv")
+```
+
+***Part A***
+
+```{r, echo=FALSE, message=FALSE}
+library(tidyverse)
+library(mosaic)
+
+sclass_filtered <- sclass %>%
+  filter(year == 2011, trim == "63 AMG", condition == "Used")
+
+boot_mileage <- do(10000) * mean(~mileage, data = resample(sclass_filtered))
+
+conf_interval <- confint(boot_mileage, level = 0.95)
+
+rounded_conf_interval <- round(conf_interval[, 2:3], 2)
+print(rounded_conf_interval)
+
+```
+
+Based on the confidence interval's range being between 26926.91 and 34716.97, we are 95% confident that the true average mileage of used 2011 S-Class 63 AMG cars in the population falls between 26,926.91 and 34,716.97 miles.
+
+
+***Part B***
+```{r, echo=FALSE}
+library(tidyverse)
+library(mosaic)
+
+sclass_filtered <- sclass %>%
+  filter(year == 2014, trim == "550") %>%
+  mutate(isBlack = ifelse(color == "Black", TRUE, FALSE))
+
+boot_black <- do(10000) * mean(~isBlack, data = resample(sclass_filtered))
+
+conf_interval <- confint(boot_black, level = 0.95)
+
+rounded_conf_interval <- round(conf_interval[, 2:3], 4)  # 4 decimal places for proportion
+print(rounded_conf_interval)
+
+
+```
+This means we are 95% confident that the true proportion of all 2014 S-Class 550s that were painted black falls between 41.68% and 45.28%.
+If we could analyze all 2014 S-Class 550s, the proportion of black cars would likely be within this range. Since the confidence interval is around 42%-45%, this suggests that nearly half of all 2014 S-Class 550s were black.
+
+## Question 3
+
+***Part A***
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(mosaic)
+
+nbc_pilotsurvey = read.csv("nbc_pilotsurvey.csv")
+nbc_filtered <- nbc_pilotsurvey %>%
+  filter(Show %in% c("Living with Ed", "My Name is Earl"))
+
+boot_happy <- do(10000) * diffmean(Q1_Happy ~ Show, data = resample(nbc_filtered))
+conf_interval <- confint(boot_happy, level = 0.95)
+
+rounded_conf_interval <- round(conf_interval[, 2:3], 3)
+print(rounded_conf_interval)
+```
+
+**Question:**  Is there evidence that one show consistently produces a higher mean Q1_Happy response among viewers?
+
+**Approach:**
+
+1) Filter the dataset for these two shows.
+
+2) Bootstrap a 95% confidence interval for the difference in mean Q1_Happy scores.
+
+3) Check if the CI includes zero to determine if there's a significant difference.
+
+**Results:** It was shown that the difference in mean happiness between the shows “Living with Ed” and “My Name is Earl” is somewhere between -0.4007 and 0.1036, with 95% confidence.
+
+**Interpretation:** Since the confidence interval includes 0 (-0.397, 0.101), there's not strong evidence that one show produces significantly higher happiness ratings than the other. This means viewers of "Living with Ed" and "My Name is Earl" had similar happiness responses on average.
+
+\newpage
+
+***Part B***
+
+**Question:** Do viewers of "The Biggest Loser" feel more annoyed (Q1_Annoyed) than viewers of "The Apprentice: Los Angeles"?
+
+**Approach:** 
+
+1) Filter the dataset for these two shows.
+
+2) Bootstrap a 95% confidence interval for the difference in mean Q1_Annoyed scores.
+
+3) Check if the CI includes zero to determine if there's a significant difference.
+
+```{r, echo=FALSE}
+nbc_filtered <- nbc_pilotsurvey %>%
+  filter(Show %in% c("The Biggest Loser", "The Apprentice: Los Angeles"))
+
+boot_annoyed <- do(10000) * diffmean(Q1_Annoyed ~ Show, data = resample(nbc_filtered))
+conf_interval <- confint(boot_annoyed, level = 0.95)
+
+rounded_conf_interval <- round(conf_interval[, 2:3], 3)
+print(rounded_conf_interval)
+```
+**Results:** The confidence interval does not include 0, therefore we can say, with 95% confidence, that this *The Apprentice: Los Angeles* is "more annoying" than *The Biggest Loser*, as diffmean(Q1_Annoyed ~ Show), shows the difference as Mean Annoyance of "Biggest Loser" − Mean Annoyance of "Apprentice: LA", which is always negative.
+
+**Conclusion:** This means that The Apprentice was consistently more annoying to viewers.
+
+\newpage
+
+***Part C***
+
+**Question:** What proportion of viewers agreed (4) or strongly agreed (5) that "Dancing with the Stars" was confusing?
+
+**Approach:** 
+
+1) Filter dataset for responses where Show == "Dancing with the Stars".
+
+2) Create a binary variable (isConfused): TRUE if Q2_Confusing ≥ 4, FALSE otherwise.
+
+3) Bootstrap the proportion of confused viewers and compute a 95% confidence interval.
+
+**Results:**
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(mosaic)
+
+nbc_filtered <- nbc_pilotsurvey %>%
+  filter(Show == "Dancing with the Stars") %>%
+  mutate(isConfused = Q2_Confusing >= 4)
+
+boot_confused <- do(10000) * mean(~isConfused, data = resample(nbc_filtered))
+
+conf_interval <- confint(boot_confused, level = 0.95)
+
+rounded_conf_interval <- round(conf_interval[, 2:3], 4) 
+print(rounded_conf_interval)
+```
+
+
+**Conclusion:** We estimate that between ~3.87% and ~11.6% of American TV viewers found "Dancing with the Stars" confusing with 95% confidence
+
+This means a very small population finds the show confusing (A little embarrassing)
+
+
+## Question 4
+
+**Question:** Does turning off paid search advertising significantly reduce eBay's revenue?
+
+**Approach:**
+
+1) Load and filter the dataset.
+
+2) Create a new variable for the revenue ratio (rev_ratio = rev_after / rev_before).
+
+3) Bootstrap a 95% confidence interval for the difference in mean revenue ratios between the treatment and control groups.
+
+4) Assess whether the confidence interval includes 0 (i.e., no significant difference).
+
+```{r, echo=FALSE}
+ebay = read.csv("ebay.csv")
+
+# Load necessary libraries
+library(tidyverse)
+library(mosaic)
+
+# Read the dataset
+ebay <- read.csv("ebay.csv")
+
+# Step 1: Create revenue ratio variable
+ebay <- ebay %>%
+  mutate(rev_ratio = rev_after / rev_before)
+
+# Step 2: Bootstrap 95% CI for difference in revenue ratio
+boot_rev_ratio <- do(10000) * diffmean(rev_ratio ~ adwords_pause, data = resample(ebay))
+
+# Step 3: Compute the confidence interval
+conf_interval <- confint(boot_rev_ratio, level = 0.95)
+
+# Step 4: Round and print results
+rounded_conf_interval <- round(conf_interval[, 2:3], 4)
+print(rounded_conf_interval)
+
+```
+**Results:** The results show that the entire confidence interval is negative, ranging from (-.0.0918, -0.0134). Because this interval does not cross 0, we can say that with 95% confidence, the revenue ratio was lower in the treatment group (where ads were paused) compared to the control group (where ads continued) because it stays negative.
+
+The estimated drop in revenue ratio falls between 1.34% and 9.18%.
+
+**Conclusions:**
+
+The treatment group (ads paused) saw a statistically significant decrease in revenue ratio compared to the control group.
+
+Since the entire confidence interval is negative, there is strong evidence that paid ads were driving additional revenue.
+
+As for what this implies for the business, turning off paid search ads led to a real revenue loss, suggesting that eBay should continue investing in Google AdWords.
+
+
