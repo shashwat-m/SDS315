@@ -1,0 +1,152 @@
+---
+title: "HW04"
+author: "Shashwat Mishra"
+date: "2025-02-17"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+
+library(tidyverse)
+library(mosaic)
+
+set.seed(42)
+iron_bank_sim = do(100000) * nflip(n = 2021, prob = 0.024)
+
+
+p_value = sum(iron_bank_sim$nflip >= 70) / 100000
+
+print(paste("P-value:", p_value))
+
+ggplot(iron_bank_sim, aes(x=nflip)) + 
+  geom_histogram(binwidth=1, fill="blue", alpha=0.7) + 
+  geom_vline(xintercept=70, color="red", linetype="dashed") +
+  ggtitle("Simulated Distribution of Flagged Trades (N=100000)") +
+  xlab("Number of Flagged Trades") +
+  ylab("Frequency")
+
+
+```
+
+\newpage
+
+## Question 2
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+library(mosaic)
+
+set.seed(42)  # For reproducibility
+sim_Inspections = do(100000) * nflip(n=50, prob=0.030)
+
+p_value = sum(sim_Inspections$nflip >= 8) / 100000
+
+print(paste("P-value:", p_value))
+
+ggplot(sim_Inspections, aes(x=nflip)) + 
+  geom_histogram(binwidth=1, fill="#BF5700", alpha=0.7) + 
+  geom_vline(xintercept=8, color="red", linetype="dashed") +
+  ggtitle("Simulated Distribution of Health Code Violations (N=100000)") +
+  xlab("Number of Violations") +
+  ylab("Frequency")
+
+```
+
+Because the p-value is very small (0.00012), It means that 8 or more violations in 50 inspections is very unlikely under the null hypothesis. This suggests that Gourmet Bites might have a higher violation rate than other restaurants. The Health Department should investigate further.
+
+
+```{r echo=FALSE}
+library(ggplot2)
+
+observed_counts <- c(85, 56, 59, 27, 13)
+county_proportions <- c(0.30, 0.25, 0.20, 0.15, 0.10)  
+
+total_jurors <- sum(observed_counts)
+
+expected_counts <- county_proportions * total_jurors
+
+chi_test <- chisq.test(x = observed_counts, p = county_proportions)
+
+print(chi_test)
+
+data <- data.frame(
+  Group = factor(1:5),
+  Count = c(observed_counts, expected_counts),
+  Type = rep(c("Observed", "Expected"), each = 5)
+)
+
+ggplot(data, aes(x = Group, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Observed vs Expected Jury Selection",
+       x = "Jury Group", y = "Number of Jurors") +
+  theme_minimal()
+```
+Our analysis using a Chi-Square Goodness-of-Fit Test (x^2 = 12.43, p = 0.0144) found that the jury selection overseen by this judge significantly differs from the county's expected demographic proportions. Since the probability of this deviation occurring by chance is low (<5%), we reject the null hypothesis, suggesting that jury selection is not random and may be influenced by systematic factors. While this does not confirm intentional bias, possible explanations include jury pool selection biases, hardship exemptions, or attorney peremptory challenges. Further investigation is necessary to determine the cause and ensure fair jury selection.
+
+\newpage
+
+## Question 4
+```{r, echo=FALSE}
+library(tidyverse)
+
+sentences <- read.table("brown_sentences.txt")
+
+expected_freq <- c(
+  A = 0.08167, B = 0.01492, C = 0.02782, D = 0.04253, E = 0.12702, F = 0.02228, 
+  G = 0.02015, H = 0.06094, I = 0.06966, J = 0.00153, K = 0.00772, L = 0.04025, 
+  M = 0.02406, N = 0.06749, O = 0.07507, P = 0.01929, Q = 0.00095, R = 0.05987, 
+  S = 0.06327, T = 0.09056, U = 0.02758, V = 0.00978, W = 0.02360, X = 0.00150, 
+  Y = 0.01974, Z = 0.00074
+)
+
+preprocess_and_count <- function(text) {
+  text <- gsub("[^A-Za-z]", "", toupper(text))  
+  letter_counts <- table(factor(strsplit(text, "")[[1]], levels = LETTERS))  
+  return(as.numeric(letter_counts)) 
+}
+
+calculate_chi_squared <- function(observed, expected) {
+  expected[expected == 0] <- 1e-10  
+  chi_squared <- sum((observed - expected)^2 / expected)
+  return(chi_squared)
+}
+
+chi_squared_stats <- numeric(length(sentences))
+
+for (i in seq_along(sentences)) {
+  observed_counts <- preprocess_and_count(sentences[i])  
+  
+  sentence_length <- sum(observed_counts)
+  if (sentence_length == 0) next
+
+  expected_counts <- expected_freq[LETTERS] * sentence_length
+
+  chi_squared_stats[i] <- calculate_chi_squared(observed_counts, expected_counts)
+}
+
+chi_square_df <- data.frame(Chi_Square = chi_squared_stats)
+
+ggplot(chi_square_df, aes(x = Chi_Square)) +
+  geom_histogram(bins = 50, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Chi-Squared Statistics",
+       x = "Chi-Squared Statistic",
+       y = "Frequency") +
+  theme_minimal()
+
+```
+
+```
+
