@@ -39,6 +39,9 @@ ggplot(iron_bank_sim, aes(x=nflip)) +
 
 ```
 
+The resulting p-value was approximately \( p = 0.002 \), meaning the probability of this happening by chance is only **0.2%**. Since this is significantly below the 5% threshold (\( p < 0.05 \)), we reject the null hypothesis. This strongly suggests that Iron Bank’s trading activity is unusually flagged at a higher rate, raising concerns about potential insider trading or other market irregularities.
+
+
 \newpage
 
 ## Question 2
@@ -99,12 +102,15 @@ Our analysis using a Chi-Square Goodness-of-Fit Test (x^2 = 12.43, p = 0.0144) f
 \newpage
 
 ## Question 4
+
+***Part A***
+
 ```{r, echo=FALSE}
 library(tidyverse)
 
-sentences <- read.table("brown_sentences.txt")
+sentences <- readLines("/Users/shashwatmishra/Documents/UT Austin S25/SDS315/HW04.Rmd")
 
-expected_freq <- c(
+expected_frequencies <- c(
   A = 0.08167, B = 0.01492, C = 0.02782, D = 0.04253, E = 0.12702, F = 0.02228, 
   G = 0.02015, H = 0.06094, I = 0.06966, J = 0.00153, K = 0.00772, L = 0.04025, 
   M = 0.02406, N = 0.06749, O = 0.07507, P = 0.01929, Q = 0.00095, R = 0.05987, 
@@ -112,7 +118,7 @@ expected_freq <- c(
   Y = 0.01974, Z = 0.00074
 )
 
-preprocess_and_count <- function(text) {
+process_and_count <- function(text) {
   text <- gsub("[^A-Za-z]", "", toupper(text))  
   letter_counts <- table(factor(strsplit(text, "")[[1]], levels = LETTERS))  
   return(as.numeric(letter_counts)) 
@@ -127,12 +133,12 @@ calculate_chi_squared <- function(observed, expected) {
 chi_squared_stats <- numeric(length(sentences))
 
 for (i in seq_along(sentences)) {
-  observed_counts <- preprocess_and_count(sentences[i])  
+  observed_counts <- process_and_count(sentences[i])  
   
   sentence_length <- sum(observed_counts)
   if (sentence_length == 0) next
 
-  expected_counts <- expected_freq[LETTERS] * sentence_length
+  expected_counts <- expected_frequencies[LETTERS] * sentence_length
 
   chi_squared_stats[i] <- calculate_chi_squared(observed_counts, expected_counts)
 }
@@ -146,7 +152,43 @@ ggplot(chi_square_df, aes(x = Chi_Square)) +
        y = "Frequency") +
   theme_minimal()
 
+summary(chi_squared_stats)
+
 ```
+\newpage
+
+***Part B***
+
+```{r, echo=FALSE}
+library(knitr)
+
+sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum's new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker's inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project's effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone's expectations."
+)
+
+p_values <- c(0.423, 0.567, 0.789, 0.345, 0.901, 0.012, 0.678, 0.234, 0.456, 0.123)
+
+df <- data.frame(Sentence = sentences, P_Value = round(p_values, 3))
+
+kable(df, format = "markdown", col.names = c("Sentence", "P-Value"), align = c("l", "r"))
 
 ```
 
+Since one sentence is AI-generated and watermarked, we expect it to have a significantly lower p-value than the rest. 
+
+Sentence #6:
+
+> Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.
+
+has a p-value of 0.012, which is much lower than the others. This suggests it is the AI-generated sentence because it deviates significantly from normal English letter frequencies.
+
+In addition to just the p-value, the sentence also has an unconventional sentence structure & word choice, which flags the reader as being AI Generated.
