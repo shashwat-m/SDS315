@@ -1,0 +1,144 @@
+---
+title: "HW08"
+author: "Shashwat Mishra | sdm4329"
+date: "2025-04-14"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(mosaic)
+library(dplyr)
+library(ggplot2)
+```
+
+# Question 1
+
+
+## Part A
+```{r message=FALSE, echo=FALSE, warning=FALSE, output = FALSE}
+creatinine <- read.csv("/Users/shashwatmishra/Downloads/creatinine.csv")
+max_count <- max(creatinine$creatclear)
+min_count <- min(creatinine$creatclear)
+mean <- mean(creatinine$creatclear)
+
+lin_model <- lm(creatclear ~ age, data=creatinine)
+summary(lin_model)
+
+creat_55 <- 147.81292 + (-0.61892 * 55)
+```
+
+The expected creatinine clearance rate for someone who is 55 years old is `r round(creat_55, 3)`. To find this, I used a linear model using the lm() function to find the coefficients of the slope and intercept of the line of best fit of the data. The coefficients I got were -0.61982 for the age, and 147.81292 for the intercept. Using this, I made the formula -0.61982(age) + 147.81292 to find the expected creatinine level of a specific age. 
+
+
+## Part B
+
+The creatinine clearance rate decreases by approximately 0.62 mL/minute per year. I determined this by examining the slope of the linear regression line, which represents the change in clearance rate per one-year increase in age.
+
+
+## Part C
+
+```{r echo=FALSE}
+creat_40 <- 147.81292 + (-0.61892 * 40)
+creat_60 <- 147.81292 + (-0.61892 * 60)
+```
+
+The 40 year old with a clearance of 135 mL/minute is healthier than the 60 year old with a clearance of 112 ml/minute because according to the regression model, the expected for both the 40 and 60 year old is 123.05 mL/minute and 110.68 mL/minute, respectively. Based on this, we can see that the 40 year old's expected is far larger than the expected, overtaking it by about 12 mL/minute, whereas the 60 year old is over by only about 2 mL/minute. 
+
+Because we know that higher clearances are better, it's safe to say that the 40 year old's clearance is considerably healthier.
+
+# Question 2
+
+```{r pressure, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+covid <- read.csv("/Users/shashwatmishra/Downloads/covid.csv")
+
+italy <- covid[covid$country == "Italy",]
+spain <- covid[covid$country == "Spain",]
+
+
+model_italy <- lm(log(deaths) ~ days_since_first_death, data = italy)
+model_spain <- lm(log(deaths) ~ days_since_first_death, data = spain)
+
+summary(model_italy)
+
+k_italy <- coef(model_italy)[2]
+k_spain <- coef(model_spain)[2]
+
+doubling_italy <- log(2) / k_italy
+doubling_spain <- log(2) / k_spain
+
+boot_italy <- do(10000) * {
+  m <- lm(log(deaths) ~ days_since_first_death, data = resample(italy))
+  k <- coef(m)[2]
+  data.frame(growth = k, doubling = log(2) / k)
+}
+
+# Spain bootstrap
+boot_spain <- do(10000) * {
+  m <- lm(log(deaths) ~ days_since_first_death, data = resample(spain))
+  k <- coef(m)[2]
+  data.frame(growth = k, doubling = log(2) / k)
+}
+
+
+summary(boot_italy$growth)
+summary(boot_italy$doubling)
+
+# Spain CI (approximate)
+summary(boot_spain$growth)
+summary(boot_spain$doubling)
+
+
+ggplot(covid, aes(x = days_since_first_death, y = deaths, color = country)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Daily COVID-19 Deaths Over Time in Italy and Spain",
+    x = "Days Since First Reported Death",
+    y = "Daily Reported Deaths",
+    color = "Country"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+The estimated growth rate and doubling time for Italy were 0.183 and 3.78 days, respectively.
+For Spain, the estimated growth rate was 0.276, with a corresponding doubling time of 2.51 days
+
+# Question 3
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+milk <- read.csv("/Users/shashwatmishra/Downloads/milk.csv")
+milk_model <- lm(sales ~ price, data=milk)
+
+summary(milk_model)
+price_slope <- coef(milk_model)[2]
+
+log_model <- lm(log(sales) ~ log(price), data = milk)
+summary(log_model)
+elasticity <- coef(log_model)[2]
+
+library(mosaic)
+
+set.seed(123)
+boot_elasticity <- do(10000) * {
+  m <- lm(log(sales) ~ log(price), data = resample(milk))
+  data.frame(beta = coef(m)[2])
+}
+
+quantile(boot_elasticity$beta, c(0.025, 0.975))
+
+        
+```
+
+To estimate the price elasticity of demand for milk, we fit a log-log linear model of log(sales) on log(price), consistent with a power-law demand model.
+
+The estimated price elasticity was approximately -1.61, with a 95% bootstrapped confidence interval from -1.77 to -1.46.
+
+This suggests that a 1% increase in the price of milk leads to a 1.46% to 1.77% decrease in the quantity of milk purchased, indicating elastic demand.
+
+
+
