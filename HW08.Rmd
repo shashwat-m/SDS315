@@ -1,7 +1,7 @@
 ---
 title: "HW08"
 author: "Shashwat Mishra | sdm4329"
-date: "2025-04-14"
+date: https://github.com/shashwat-m/SDS315
 output: pdf_document
 ---
 
@@ -13,11 +13,14 @@ library(dplyr)
 library(ggplot2)
 ```
 
+
+\newpage
+
 # Question 1
 
 
 ## Part A
-```{r message=FALSE, echo=FALSE, warning=FALSE, output = FALSE}
+```{r message=FALSE, echo=FALSE, warning=FALSE, output = FALSE, results='hide'}
 creatinine <- read.csv("/Users/shashwatmishra/Downloads/creatinine.csv")
 max_count <- max(creatinine$creatclear)
 min_count <- min(creatinine$creatclear)
@@ -134,7 +137,7 @@ quantile(boot_elasticity$beta, c(0.025, 0.975))
         
 ```
 
-To estimate the price elasticity of demand for milk, we fit a log-log linear model of log(sales) on log(price), consistent with a power-law demand model.
+To estimate the price elasticity of demand for milk, I fit a log-log linear model of log(sales) on log(price), consistent with a power-law demand model.
 
 The estimated price elasticity was approximately -1.61, with a 95% bootstrapped confidence interval from -1.77 to -1.46.
 
