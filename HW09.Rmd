@@ -2,7 +2,10 @@
 title: "HW09"
 author: "Shashwat Mishra | sdm4329"
 date: "2025-04-21"
-output: pdf_document
+output: 
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +19,7 @@ library(dplyr)
 
 ## Part A
 
-```{r}
+```{r, echo=FALSE}
 solder <- read.csv("/Users/shashwatmishra/Downloads/solder.csv")
 
 ggplot(solder, aes(x = Opening, y = skips, fill = Opening)) +
@@ -30,7 +33,7 @@ ggplot(solder, aes(x = Opening, y = skips, fill = Opening)) +
   theme_minimal() +
   scale_fill_brewer(palette = "Pastel1")
 
-# Plot 2: skips by Solder thickness, each level a different color
+
 ggplot(solder, aes(x = Solder, y = skips, fill = Solder)) +
   geom_boxplot() +
   labs(
@@ -45,7 +48,7 @@ ggplot(solder, aes(x = Solder, y = skips, fill = Solder)) +
 
 ## Part B
 
-```{r cars}
+```{r cars, echo=FALSE}
 model <- lm(skips ~ Opening * Solder, data = solder)
 
 coefs <- coef(summary(model))
@@ -112,7 +115,7 @@ ggplot(avg_price_by_store, aes(x = reorder(Store, mean_price), y = mean_price)) 
 
 
 ## Part B
-```{r, fig.height=12}
+```{r, fig.height=12, echo=FALSE}
 product_store_counts <- groceries %>%
   group_by(Product) %>%
   summarise(n_stores = n_distinct(Store)) %>%
@@ -129,12 +132,11 @@ ggplot(product_store_counts, aes(x = reorder(Product, n_stores), y = n_stores)) 
   labs(
     title = "Number of Stores Selling Each Product",
     x = "Product",
-    y = "Number of Stores",
-    caption = "Only some products (like milk and eggs) are sold in all 16 stores, while others are much less commonly available."
+    y = "Number of Stores"
   ) +
   theme_minimal(base_size = 12) +
   theme(axis.text.y = element_text(size = 8))
-  # reduce font size slightly for legibility
+
 
 
 
@@ -143,7 +145,7 @@ ggplot(product_store_counts, aes(x = reorder(Product, n_stores), y = n_stores)) 
 
 ## Part C
 
-```{r}
+```{r echo=FALSE, results='hide'}
 model <- lm(Price ~ Product + Type, data = groceries)
 summary(model)
 
@@ -153,7 +155,7 @@ confint(model)
 Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between $0.41 and $0.92 more for the same product.
 
 ## Part D
-```{r}
+```{r echo=FALSE}
 model_store <- lm(Price ~ Product + Store, data = groceries)
 
 # Get estimated effects for each store
@@ -172,7 +174,7 @@ tail(sorted_store_effects, 2)   # Highest price stores
 After controlling for product, Walmart and Kroger Fresh Fare appear to charge the lowest prices, while Whole Foods and Wheatsville Food Co-Op charge the highest prices.
 
 ## Part E
-```{r}
+```{r echo=FALSE}
 names(sorted_store_effects)
 sorted_store_effects[c("StoreH-E-B ", "StoreCentral Market")]
 ```
@@ -183,7 +185,7 @@ Compared to other store differences — like Walmart being nearly 1 dollar cheap
 
 ## Part F
 
-```{r}
+```{r echo=FALSE, results='hide'}
 groceries <- groceries %>%
   mutate(Income10K = Income / 10000)
 
@@ -262,4 +264,6 @@ p-value = 0.006 → statistically significant
 The R squared is also high (0.662), which explains that 66% of the variance comes from this model. 
 
 This proves that there remains a statistically significant and positive association between minority percentage and FAIR policy usage even after controlling for income, fire risk, and housing age.
+
+
 
