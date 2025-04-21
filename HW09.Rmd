@@ -1,0 +1,265 @@
+---
+title: "HW09"
+author: "Shashwat Mishra | sdm4329"
+date: "2025-04-21"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+```
+
+# Question 1
+
+
+## Part A
+
+```{r}
+solder <- read.csv("/Users/shashwatmishra/Downloads/solder.csv")
+
+ggplot(solder, aes(x = Opening, y = skips, fill = Opening)) +
+  geom_boxplot() +
+  labs(
+    title = "Number of Solder Skips by Opening Size",
+    x = "Opening Size on Solder Gun",
+    y = "Number of Solder Skips",
+    caption ="Larger openings tend to result in fewer skips; smaller openings are associated with more skips and greater variability."
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Pastel1")
+
+# Plot 2: skips by Solder thickness, each level a different color
+ggplot(solder, aes(x = Solder, y = skips, fill = Solder)) +
+  geom_boxplot() +
+  labs(
+    title = "Number of Solder Skips by Solder Thickness",
+    x = "Solder Thickness",
+    y = "Number of Solder Skips",
+    caption = "Thick solder tends to result in fewer skips than thin solder, suggesting greater reliability."
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+```
+
+## Part B
+
+```{r cars}
+model <- lm(skips ~ Opening * Solder, data = solder)
+
+coefs <- coef(summary(model))
+conf_intervals <- confint(model)
+
+
+results <- cbind(
+  Estimate = coefs[, "Estimate"],
+  `95% CI Lower` = conf_intervals[, 1],
+  `95% CI Upper` = conf_intervals[, 2]
+)
+
+# View the result
+print(round(results, 3))
+```
+
+## Part C
+
+OpeningM:
+Boards with a medium opening and thick solder have significantly more skips (about 2.41 more) than those with a large opening and thick solder.
+
+OpeningS:
+Boards with a small opening and thick solder have significantly more skips (about 5.13 more) than those with a large opening and thick solder.
+
+SolderThin:
+Using thin solder with a large opening significantly increases skips by about 2.28 compared to thick solder.
+
+OpeningS:SolderThin:
+There is a strong and significant interaction: using thin solder with a small opening increases skips by an additional ~9.65, beyond the main effects.
+
+The baseline estimate (large opening + thick solder) is not significantly different from zero; we can't rule out that the mean number of skips might be zero in this case.
+
+OpeningM:SolderThin:
+The interaction between medium opening and thin solder is not significant; the added effect beyond the main terms might be due to chance.
+
+
+## Part D
+
+Based on the analysis, I would recommend using Thick Solder with a Large Opening, as this combination corresponds to the baseline group in the model and results in the lowest predicted number of skips. The confidence intervals for all other combinations are significantly above 0, meaning they lead to more skips. While Thin Solder with a Large Opening is better than other combinations, it still significantly increases skips compared to the baseline.
+
+# Question 2
+
+## Part A
+
+```{r pressure, echo=FALSE}
+groceries <- read.csv("/Users/shashwatmishra/Downloads/groceries.csv")
+
+avg_price_by_store <- groceries %>%
+  group_by(Store) %>%
+  summarise(mean_price = mean(Price, na.rm = TRUE)) %>%
+  arrange(mean_price)
+
+ggplot(avg_price_by_store, aes(x = reorder(Store, mean_price), y = mean_price)) +
+  geom_col(fill = "skyblue") +
+  coord_flip() +
+  labs(
+    title = "Average Product Price by Store",
+    x = "Store",
+    y = "Average Price ($)",
+    caption = "This plot shows that some stores, like Whole Foods and CVS, have noticeably higher average prices than others like Walmart and H-E-B."
+  ) +
+  theme_minimal()
+```
+
+
+## Part B
+```{r, fig.height=12}
+product_store_counts <- groceries %>%
+  group_by(Product) %>%
+  summarise(n_stores = n_distinct(Store)) %>%
+  arrange(n_stores)
+
+library(stringr)
+
+product_store_counts <- product_store_counts %>%
+  mutate(Product = str_wrap(Product, width = 25))  # adjust width as needed
+
+ggplot(product_store_counts, aes(x = reorder(Product, n_stores), y = n_stores)) +
+  geom_col(fill = "lightcoral", width = 0.5) +
+  coord_flip() +
+  labs(
+    title = "Number of Stores Selling Each Product",
+    x = "Product",
+    y = "Number of Stores",
+    caption = "Only some products (like milk and eggs) are sold in all 16 stores, while others are much less commonly available."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.y = element_text(size = 8))
+  # reduce font size slightly for legibility
+
+
+
+```
+
+
+## Part C
+
+```{r}
+model <- lm(Price ~ Product + Type, data = groceries)
+summary(model)
+
+confint(model)
+```
+
+Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between $0.41 and $0.92 more for the same product.
+
+## Part D
+```{r}
+model_store <- lm(Price ~ Product + Store, data = groceries)
+
+# Get estimated effects for each store
+store_effects <- coef(summary(model_store))
+
+# Extract just the rows related to Store
+store_coefs <- store_effects[grep("^Store", rownames(store_effects)), ]
+
+# Sort by Estimate to find lowest and highest stores
+sorted_store_effects <- sort(store_coefs[, "Estimate"])
+
+# View top and bottom 2
+head(sorted_store_effects, 2)   # Lowest price stores
+tail(sorted_store_effects, 2)   # Highest price stores
+```
+After controlling for product, Walmart and Kroger Fresh Fare appear to charge the lowest prices, while Whole Foods and Wheatsville Food Co-Op charge the highest prices.
+
+## Part E
+```{r}
+names(sorted_store_effects)
+sorted_store_effects[c("StoreH-E-B ", "StoreCentral Market")]
+```
+
+After controlling for product, Central Market has a coefficient of −0.57, while H-E-B has −0.65. This means Central Market charges about 7 cents more per product than H-E-B on average, for the same product.
+
+Compared to other store differences — like Walmart being nearly 1 dollar cheaper or Whole Foods being $0.36 more expensive — the Central Market vs. H-E-B difference is very small, suggesting that most of Central Market’s reputation for higher prices may come from the types of products it sells, rather than charging significantly more for identical products.
+
+## Part F
+
+```{r}
+groceries <- groceries %>%
+  mutate(Income10K = Income / 10000)
+
+model_income <- lm(Price ~ Product + Income10K, data = groceries)
+summary(model_income)
+
+
+sd_income10K <- sd(groceries$Income10K, na.rm = TRUE)
+sd_price <- sd(groceries$Price, na.rm = TRUE)
+
+standardized_beta <- -0.01409 * (sd_income10K / sd_price)
+standardized_beta
+```
+
+Since the coefficient is negative, it suggests that as income increases, price decreases — or put differently:
+
+Consumers in poorer ZIP codes pay slightly more for the same product, on average.
+
+
+The coefficient on Income10K is −0.014, meaning that for every additional $10,000 in average ZIP code income, the expected price for the same product goes down by 1.4 cents, on average. This suggests that poorer ZIP codes tend to pay slightly more for the same product, though this effect was not statistically significant (p = 0.14).
+
+To make this easier to compare with other effects, we calculated the standardized coefficient, which tells us how much the price changes in standard deviation terms for a one-standard deviation change in income. The standardized coefficient was approximately −0.032. This means:
+
+A one-standard deviation increase in income is associated with a 0.032 standard deviation decrease in product price, controlling for product.
+
+
+
+# Question 3
+
+## Part A
+This is True. In the first graph, we see a clear linear correlation between the percentage of minority residents in a zip code and how many FAIR policies there are. In addition,the Coefficient on minority is 0.014 and the p < 0.001, which meants its highly statistically significant.
+
+The 95% CI of [0.009, 0.018] doesn’t include zero, which means that there is a 0.9% - 1.8% increase in FAIR policies as minority percentage goes up.
+
+## Part B
+This is False — there is no evidence of an interaction effect between minority percentage and housing age in their relationship to FAIR policies.
+All models either test main effects only (model_E) or test interaction with a different variable (fire risk in model_C).
+The regression of minority ~ age (model_B) shows a weak correlation, but does not support an interaction effect in predicting FAIR policies. The R squared is very small (0.06) and the p-value is much higher than normal (0.12)
+
+## Part C
+True — The data shows that the relationship between minority percentage and FAIR policy usage is significantly stronger in high-fire-risk ZIP codes, both visually (Figure C1) and statistically (via a significant interaction in model_C).
+
+The slope and intercept for the group with higher fire rates is higher, meaning that there is a higher amount of FAIR policies in minority areas that are in high-risk fire areas.
+
+Figure C1 shows this as the slopes for both low and high risks are different, with high risk having a higher slope. This indicates a stronger positive relationship between % minority and FAIR policies in high-fire-risk areas.
+
+## Part D
+False — While controlling for income does reduce the strength of the relationship between minority percentage and FAIR policy uptake, it does not eliminate it. Minority percentage remains a statistically significant predictor, so income does not "explain away" the entire association.
+
+From Model_D1: policies ~ minority
+The Coefficient on minority = 0.014
+The p-value = < 0.001 → highly significant
+The 95% Confidence Interval = [0.009, 0.018]
+
+This model shows a strong positive association between minority percentage and FAIR policy usage without any controls.
+
+From Model_D2: policies ~ minority + income
+The Coefficient on minority = 0.010, p = 0.002
+The 95% Confidence Interval = [0.004, 0.015]
+The Coefficient on income = −0.074, p = 0.041
+
+After adding income to the model, the minority coefficient decreases slightly, but remains statistically significant and positive, indicating an ongoing association.
+
+If income “explained away” the relationship, we would expect the coefficient on minority to become insignificant or close to zero. But it doesn't, so income doesn't just fully account for the relationship between FAIR policies and minority percentage
+
+## Part E
+This is True
+
+Coefficient for minority:
+Estimate = 0.008
+
+p-value = 0.006 → statistically significant
+
+95% Confidence Interval = [0.003, 0.014]
+
+The R squared is also high (0.662), which explains that 66% of the variance comes from this model. 
+
+This proves that there remains a statistically significant and positive association between minority percentage and FAIR policy usage even after controlling for income, fire risk, and housing age.
+
